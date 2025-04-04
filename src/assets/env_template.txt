@@ -1,0 +1,34 @@
+
+# Synapse Core Environment Variables
+# Copy this file to .env and fill in the values
+
+# API Keys for Providers
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
+MISTRAL_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_API_KEY=AIza-xxxxxxxxxxxxxxxx
+
+# Database Configuration
+DATABASE_URL=postgres://username:password@localhost:5432/synapse
+VECTOR_DB_URL=https://your-instance.pinecone.io
+VECTOR_DB_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Security
+SYNAPSE_API_KEY=sk-synapse-xxxxxxxxxxxxxxxx
+JWT_SECRET=your-very-secure-jwt-secret-key-here
+ENCRYPTION_KEY=your-32-character-aes-encryption-key
+
+# Integrations
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxx
+STRIPE_SECRET_KEY=sk_xxxxxxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+
+# Deployment
+PORT=8000
+NODE_ENV=development  # or production
+LOG_LEVEL=info  # debug, info, warn, error
+
+# Feature Flags
+ENABLE_STREAMING=true
+ENABLE_ADVANCED_MEMORY=true
+MAX_AGENT_ITERATIONS=10

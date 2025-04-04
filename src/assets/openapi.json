@@ -1,0 +1,819 @@
+
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Synapse Core API",
+    "description": "A unified API interface for AI agents and language models",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Synapse Core Support",
+      "url": "https://docs.synapse-core.ai",
+      "email": "support@synapse-core.ai"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.synapse-core.ai/v1",
+      "description": "Production API Server"
+    },
+    {
+      "url": "https://api.staging.synapse-core.ai/v1",
+      "description": "Staging API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY",
+        "description": "Your Synapse Core API key"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional error details"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The role of the message author",
+            "enum": ["user", "assistant", "system"]
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          }
+        }
+      },
+      "PromptChainRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "The model identifier to use for generating text"
+          },
+          "system": {
+            "type": "string",
+            "description": "Optional system message to provide context"
+          },
+          "messages": {
+            "type": "array",
+            "description": "An array of messages to feed into the model",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 2,
+            "default": 0.7,
+            "description": "Controls randomness in output generation"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 32000,
+            "default": 1024,
+            "description": "Maximum number of tokens in the response"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata for the request"
+          }
+        }
+      },
+      "PromptChainResponse": {
+        "type": "object",
+        "required": ["id", "content"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the completion"
+          },
+          "content": {
+            "type": "string",
+            "description": "The generated text"
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used for generation"
+          },
+          "provider": {
+            "type": "string",
+            "description": "The provider of the model"
+          },
+          "usage": {
+            "type": "object",
+            "description": "Token usage information",
+            "properties": {
+              "prompt_tokens": {
+                "type": "integer",
+                "description": "Number of tokens in the prompt"
+              },
+              "completion_tokens": {
+                "type": "integer",
+                "description": "Number of tokens in the completion"
+              },
+              "total_tokens": {
+                "type": "integer",
+                "description": "Total number of tokens used"
+              }
+            }
+          }
+        }
+      },
+      "MistralRequest": {
+        "type": "object",
+        "required": ["model", "prompt"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Mistral model to use",
+            "enum": ["mistral-tiny", "mistral-small", "mistral-medium", "mistral-large"]
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The text prompt to generate from"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 4096,
+            "default": 1024,
+            "description": "Maximum number of tokens in the response"
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.7,
+            "description": "Controls randomness in output generation"
+          }
+        }
+      },
+      "MistralResponse": {
+        "type": "object",
+        "required": ["id", "text"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the completion"
+          },
+          "text": {
+            "type": "string",
+            "description": "The generated text"
+          },
+          "usage": {
+            "type": "object",
+            "description": "Token usage information"
+          }
+        }
+      },
+      "ClaudeRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Claude model to use",
+            "enum": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+          },
+          "messages": {
+            "type": "array",
+            "description": "An array of messages to feed into the model",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.7,
+            "description": "Controls randomness in output generation"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 4096,
+            "default": 1024,
+            "description": "Maximum number of tokens in the response"
+          }
+        }
+      },
+      "ClaudeResponse": {
+        "type": "object",
+        "required": ["id", "content"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the completion"
+          },
+          "content": {
+            "type": "string",
+            "description": "The generated text"
+          },
+          "usage": {
+            "type": "object",
+            "description": "Token usage information"
+          }
+        }
+      },
+      "ContextRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The query to retrieve context for"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Optional user ID to scope the context"
+          },
+          "maxResults": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 5,
+            "description": "Maximum number of context entries to return"
+          },
+          "similarityThreshold": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.7,
+            "description": "Minimum similarity score for context inclusion"
+          }
+        }
+      },
+      "ContextResponse": {
+        "type": "object",
+        "required": ["results"],
+        "properties": {
+          "results": {
+            "type": "array",
+            "description": "Array of context entries",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier for this context entry"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "The context content"
+                },
+                "score": {
+                  "type": "number",
+                  "format": "float",
+                  "description": "Similarity score"
+                },
+                "metadata": {
+                  "type": "object",
+                  "description": "Additional metadata for this context entry"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SyncMemoryRequest": {
+        "type": "object",
+        "required": ["source"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "URL or identifier for the memory source"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Optional user ID to associate with the memory"
+          },
+          "mergeStrategy": {
+            "type": "string",
+            "enum": ["append", "replace", "merge"],
+            "default": "append",
+            "description": "Strategy for handling existing memory"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata for the memory entries"
+          }
+        }
+      },
+      "SyncMemoryResponse": {
+        "type": "object",
+        "required": ["success", "entriesProcessed"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the operation was successful"
+          },
+          "entriesProcessed": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of memory entries processed"
+          },
+          "errors": {
+            "type": "array",
+            "description": "Any errors encountered during processing",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "description": "Index of the failed entry"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AgentExecutionRequest": {
+        "type": "object",
+        "required": ["agentId", "input"],
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "description": "Identifier for the agent to execute"
+          },
+          "input": {
+            "type": "string",
+            "description": "Input text for the agent"
+          },
+          "tools": {
+            "type": "array",
+            "description": "Tools the agent can use",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxIterations": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10,
+            "description": "Maximum number of thinking iterations"
+          },
+          "verbose": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to include detailed execution logs"
+          }
+        }
+      },
+      "AgentExecutionResponse": {
+        "type": "object",
+        "required": ["result", "agentId"],
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "The final result from the agent"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "Identifier of the executed agent"
+          },
+          "iterations": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of iterations performed"
+          },
+          "logs": {
+            "type": "array",
+            "description": "Execution logs (if verbose=true)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "step": {
+                  "type": "integer",
+                  "description": "Step number"
+                },
+                "action": {
+                  "type": "string",
+                  "description": "Action taken"
+                },
+                "thought": {
+                  "type": "string",
+                  "description": "Agent's reasoning"
+                },
+                "result": {
+                  "type": "string",
+                  "description": "Result of the action"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/prompt/chain": {
+      "post": {
+        "summary": "Execute a multi-step prompt chain",
+        "description": "Send prompts to language models with memory and advanced features",
+        "operationId": "run_prompt_chain",
+        "tags": ["Inference"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptChainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptChainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/mistral": {
+      "post": {
+        "summary": "Query Mistral AI's API",
+        "description": "Send requests directly to Mistral AI's models",
+        "operationId": "query_mistral_api",
+        "tags": ["Providers"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MistralRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MistralResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/claude": {
+      "post": {
+        "summary": "Send requests to Claude",
+        "description": "Send requests directly to Anthropic's Claude models",
+        "operationId": "send_to_claude",
+        "tags": ["Providers"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaudeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaudeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/context": {
+      "post": {
+        "summary": "Get relevant context",
+        "description": "Retrieve contextually relevant information based on a query",
+        "operationId": "get_context",
+        "tags": ["Memory"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/sync": {
+      "post": {
+        "summary": "Sync memory from external source",
+        "description": "Import and synchronize memory data from external sources",
+        "operationId": "sync_memory_from_api",
+        "tags": ["Memory"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncMemoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncMemoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/execute": {
+      "post": {
+        "summary": "Simulate agent execution",
+        "description": "Test an agent in a controlled environment",
+        "operationId": "simulate_agent_execution",
+        "tags": ["Agents"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
