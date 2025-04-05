@@ -1,0 +1,22 @@
+
+version: '3.8'
+
+services:
+  synapse-core-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    
+  # Backend API service (optional - uncomment if you want to include the FastAPI backend)
+  # synapse-core-api:
+  #   build:
+  #     context: ./api
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - .env
+  #   restart: unless-stopped
