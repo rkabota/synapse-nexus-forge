@@ -1,63 +1,61 @@
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Play, Pause, Settings } from "lucide-react";
+import { Plus, Play, Pause, Settings, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-
-interface Agent {
-  id: string;
-  name: string;
-  status: "active" | "paused" | "error";
-  type: string;
-  memoryUsage: number;
-  lastActive: string;
-  requests: number;
-}
+import { apiService } from "@/services/apiService";
+import { useToast } from "@/hooks/use-toast";
 
 const AgentsCard = () => {
   const [view, setView] = useState("active");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const agents: Agent[] = [
-    {
-      id: "agent_sales_assistant",
-      name: "Sales Assistant",
-      status: "active",
-      type: "customer_support",
-      memoryUsage: 78,
-      lastActive: "2025-04-04T14:23:05Z",
-      requests: 245
+  const { data: agents = [], isLoading, error } = useQuery({
+    queryKey: ['agents'],
+    queryFn: apiService.getAgents,
+    refetchInterval: 15000, // Refresh every 15 seconds
+  });
+
+  const pauseAgentMutation = useMutation({
+    mutationFn: apiService.pauseAgent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      toast({
+        title: "Agent paused",
+        description: "The agent has been successfully paused.",
+      });
     },
-    {
-      id: "agent_research",
-      name: "Research Analyst",
-      status: "active",
-      type: "research",
-      memoryUsage: 92,
-      lastActive: "2025-04-04T14:20:15Z",
-      requests: 87
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to pause the agent. Please try again.",
+        variant: "destructive",
+      });
     },
-    {
-      id: "agent_code_helper",
-      name: "Code Helper",
-      status: "paused",
-      type: "development",
-      memoryUsage: 45,
-      lastActive: "2025-04-04T12:10:22Z",
-      requests: 156
+  });
+
+  const resumeAgentMutation = useMutation({
+    mutationFn: apiService.resumeAgent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      toast({
+        title: "Agent resumed",
+        description: "The agent has been successfully resumed.",
+      });
     },
-    {
-      id: "agent_qa_tester",
-      name: "QA Tester",
-      status: "error",
-      type: "development",
-      memoryUsage: 32,
-      lastActive: "2025-04-04T10:45:18Z",
-      requests: 54
-    }
-  ];
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to resume the agent. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredAgents = view === "all" ? agents : agents.filter(agent => {
     if (view === "active") return agent.status === "active";
@@ -88,6 +86,14 @@ const AgentsCard = () => {
     return "text-green-500";
   };
 
+  const handleAgentToggle = (agent: any) => {
+    if (agent.status === "active") {
+      pauseAgentMutation.mutate(agent.id);
+    } else if (agent.status === "paused") {
+      resumeAgentMutation.mutate(agent.id);
+    }
+  };
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
@@ -105,7 +111,12 @@ const AgentsCard = () => {
                 <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button size="sm" className="gap-1">
+            <Button size="sm" className="gap-1" onClick={() => {
+              toast({
+                title: "Feature Coming Soon",
+                description: "Agent creation will be available once API keys are configured.",
+              });
+            }}>
               <Plus size={16} />
               <span>New</span>
             </Button>
@@ -114,7 +125,18 @@ const AgentsCard = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {filteredAgents.length > 0 ? (
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="border border-border rounded-lg p-4 animate-pulse">
+                <div className="h-6 bg-muted rounded w-1/3 mb-3"></div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                </div>
+              </div>
+            ))
+          ) : filteredAgents.length > 0 ? (
             filteredAgents.map((agent, index) => (
               <div key={index} className="border border-border rounded-lg p-4">
                 <div className="flex justify-between items-center mb-3">
@@ -131,6 +153,8 @@ const AgentsCard = () => {
                       variant="outline" 
                       size="icon" 
                       className={`h-8 w-8 ${agent.status === "active" ? "text-yellow-500 hover:text-yellow-600" : "text-green-500 hover:text-green-600"}`}
+                      onClick={() => handleAgentToggle(agent)}
+                      disabled={agent.status === "error" || pauseAgentMutation.isPending || resumeAgentMutation.isPending}
                     >
                       {agent.status === "active" ? <Pause size={15} /> : <Play size={15} />}
                     </Button>

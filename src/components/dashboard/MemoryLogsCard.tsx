@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,83 +12,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-interface MemoryLog {
-  id: string;
-  timestamp: string;
-  source: string;
-  type: string;
-  size: string;
-  status: string;
-}
+import { apiService } from "@/services/apiService";
 
 const MemoryLogsCard = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const memoryLogs: MemoryLog[] = [
-    { 
-      id: "mem_12345", 
-      timestamp: "2025-04-04T14:23:05Z", 
-      source: "Customer Chat", 
-      type: "Conversation", 
-      size: "15 KB", 
-      status: "stored" 
-    },
-    { 
-      id: "mem_12346", 
-      timestamp: "2025-04-04T14:22:30Z", 
-      source: "Research Agent", 
-      type: "Knowledge", 
-      size: "128 KB", 
-      status: "processed" 
-    },
-    { 
-      id: "mem_12347", 
-      timestamp: "2025-04-04T14:15:12Z", 
-      source: "API Import", 
-      type: "Document", 
-      size: "540 KB", 
-      status: "pending" 
-    },
-    { 
-      id: "mem_12348", 
-      timestamp: "2025-04-04T14:10:45Z", 
-      source: "Customer Chat", 
-      type: "Conversation", 
-      size: "8 KB", 
-      status: "stored" 
-    },
-    { 
-      id: "mem_12349", 
-      timestamp: "2025-04-04T14:05:32Z", 
-      source: "User Feedback", 
-      type: "Annotation", 
-      size: "3 KB", 
-      status: "processed" 
-    },
-    { 
-      id: "mem_12350", 
-      timestamp: "2025-04-04T13:55:18Z", 
-      source: "Slack Integration", 
-      type: "Conversation", 
-      size: "22 KB", 
-      status: "error" 
-    }
-  ];
+  const { data: memoryLogs = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['memory-logs'],
+    queryFn: apiService.getMemoryLogs,
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
 
   const filteredLogs = memoryLogs.filter(log => 
     log.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 1000);
-  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -130,10 +70,10 @@ const MemoryLogsCard = () => {
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
+              onClick={() => refetch()}
+              disabled={isLoading}
             >
-              <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+              <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
             </Button>
           </div>
         </div>
@@ -153,8 +93,20 @@ const MemoryLogsCard = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.length > 0 ? (
-                filteredLogs.map((log, index) => (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-16 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-20 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-24 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-20 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-16 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-4 bg-muted rounded w-20 animate-pulse"></div></td>
+                    <td className="py-3 px-4"><div className="h-8 w-8 bg-muted rounded animate-pulse"></div></td>
+                  </tr>
+                ))
+              ) : filteredLogs.length > 0 ? (
+                filteredLogs.slice(0, 10).map((log, index) => (
                   <tr key={index} className={`border-t border-border hover:bg-muted/30 ${index % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}>
                     <td className="py-3 px-4">{formatTimestamp(log.timestamp)}</td>
                     <td className="py-3 px-4 font-mono text-xs">{log.id}</td>
@@ -180,7 +132,9 @@ const MemoryLogsCard = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-4 px-4 text-center text-muted-foreground">No memory logs found</td>
+                  <td colSpan={7} className="py-4 px-4 text-center text-muted-foreground">
+                    {searchTerm ? 'No memory logs found matching your search' : 'No memory logs found'}
+                  </td>
                 </tr>
               )}
             </tbody>

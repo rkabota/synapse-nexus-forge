@@ -1,63 +1,21 @@
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Clock, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { apiService } from "@/services/apiService";
 
 const ApiStatusCard = () => {
   const [timeframe, setTimeframe] = useState("24h");
   
-  const providers = [
-    {
-      name: "OpenAI",
-      status: "operational",
-      uptime: "99.98%",
-      latency: "245ms",
-      trend: "up",
-      models: [
-        { name: "gpt-4-turbo", status: "operational" },
-        { name: "gpt-3.5-turbo", status: "operational" },
-        { name: "dall-e-3", status: "operational" },
-        { name: "text-embedding-3", status: "operational" }
-      ]
-    },
-    {
-      name: "Anthropic",
-      status: "operational",
-      uptime: "99.95%",
-      latency: "312ms",
-      trend: "stable",
-      models: [
-        { name: "claude-3-opus", status: "operational" },
-        { name: "claude-3-sonnet", status: "operational" },
-        { name: "claude-3-haiku", status: "operational" }
-      ]
-    },
-    {
-      name: "Mistral AI",
-      status: "partial_outage",
-      uptime: "97.21%",
-      latency: "415ms",
-      trend: "down",
-      models: [
-        { name: "mistral-large", status: "degraded" },
-        { name: "mistral-medium", status: "operational" },
-        { name: "mistral-small", status: "operational" }
-      ]
-    },
-    {
-      name: "Google AI",
-      status: "operational",
-      uptime: "99.89%",
-      latency: "280ms",
-      trend: "up",
-      models: [
-        { name: "gemini-pro", status: "operational" },
-        { name: "gemini-flash", status: "operational" }
-      ]
-    }
-  ];
+  const { data: providers = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['provider-status', timeframe],
+    queryFn: apiService.getProviderStatus,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,6 +44,21 @@ const ApiStatusCard = () => {
     }
   };
 
+  if (error) {
+    return (
+      <Card className="shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-red-500">
+            <p>Failed to load API status</p>
+            <Button variant="outline" onClick={() => refetch()} className="mt-2">
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
@@ -94,53 +67,74 @@ const ApiStatusCard = () => {
             <CardTitle>API Status</CardTitle>
             <CardDescription>Current status of connected AI providers</CardDescription>
           </div>
-          <Tabs defaultValue="24h" onValueChange={setTimeframe} className="w-[200px]">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="24h">24h</TabsTrigger>
-              <TabsTrigger value="7d">7d</TabsTrigger>
-              <TabsTrigger value="30d">30d</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => refetch()}
+              disabled={isLoading}
+            >
+              <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            </Button>
+            <Tabs defaultValue="24h" onValueChange={setTimeframe} className="w-[200px]">
+              <TabsList className="grid grid-cols-3">
+                <TabsTrigger value="24h">24h</TabsTrigger>
+                <TabsTrigger value="7d">7d</TabsTrigger>
+                <TabsTrigger value="30d">30d</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {providers.map((provider, index) => (
-            <div key={index} className="border border-border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-semibold">{provider.name}</h3>
-                  {getStatusBadge(provider.status)}
-                </div>
-                <div className="flex items-center gap-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Uptime</p>
-                    <p className="font-semibold">{provider.uptime}</p>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="border border-border rounded-lg p-4 animate-pulse">
+                <div className="h-4 bg-muted rounded w-1/4 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-1/3"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {providers.map((provider, index) => (
+              <div key={index} className="border border-border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold">{provider.name}</h3>
+                    {getStatusBadge(provider.status)}
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Latency</p>
-                    <div className="flex items-center gap-1">
-                      <p className="font-semibold">{provider.latency}</p>
-                      {getTrendIcon(provider.trend)}
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Uptime</p>
+                      <p className="font-semibold">{provider.uptime}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Latency</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-semibold">{provider.latency}</p>
+                        {getTrendIcon(provider.trend)}
+                      </div>
                     </div>
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {provider.models.map((model, modelIndex) => (
+                    <div key={modelIndex} className="bg-muted rounded-md px-3 py-2 flex justify-between items-center">
+                      <span className="text-sm font-mono">{model.name}</span>
+                      <span className={`w-2 h-2 rounded-full ${
+                        model.status === 'operational' ? 'bg-green-500' : 
+                        model.status === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}></span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {provider.models.map((model, modelIndex) => (
-                  <div key={modelIndex} className="bg-muted rounded-md px-3 py-2 flex justify-between items-center">
-                    <span className="text-sm font-mono">{model.name}</span>
-                    <span className={`w-2 h-2 rounded-full ${
-                      model.status === 'operational' ? 'bg-green-500' : 
-                      model.status === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
